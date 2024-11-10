@@ -1,0 +1,234 @@
+public function fetch_checks_e5(Request $request)
+{
+    $checksE5 = DB::select(
+        "SELECT
+            e5.ID,
+            CONCAT(e5.last_name,', ',e5.first_name,' ',e5.middle_initial,'.') AS full_name,
+            e5.gender,
+            e5.member_type,
+            ftpt.description AS ftpt_code,
+            hda.description AS hda_code,
+            CONCAT(primary_teaching.Program,' ',primary_teaching.Major) AS ptd_code,
+            bachelor.CODE AS bachelor_code,
+            masters.CODE AS masters_code,
+            doctorate.CODE AS doctorate_code,
+            pl.CODE AS pl_code,
+            e5.tenure,
+            fr.CODE AS fr_code,
+            tl.CODE AS tl_code,
+            annual_salary.CODE AS as_code,
+            e5.status
+        FROM tbl_checks_e5 e5
+        JOIN tbl_checks_e5_ftpt ftpt ON e5.ftpt_ID = ftpt.ID
+        JOIN tbl_checks_e5_hda hda ON e5.hda_ID = hda.ID
+        JOIN program_with_code primary_teaching ON e5.programcode_ID_1 = primary_teaching.ID
+        JOIN program_with_code bachelor ON e5.programcode_ID_2 = bachelor.ID
+        JOIN program_with_code masters ON e5.programcode_ID_3 = masters.ID
+        JOIN program_with_code doctorate ON e5.programcode_ID_4 = doctorate.ID
+        JOIN tbl_checks_e5_prof_license pl ON e5.pl_ID = pl.ID
+        JOIN tbl_checks_e5_faculty_rank fr ON e5.fr_ID = fr.ID
+        JOIN tbl_checks_e5_teaching_load tl ON e5.tl_ID = tl.ID
+        JOIN tbl_checks_e5_annual_salary annual_salary ON e5.as_ID = annual_salary.ID
+        WHERE e5.status IN('Active', 'Modified') ORDER BY full_name LIMIT 5"
+    );
+
+    return $checksE5;
+}
+
+
+public function fetch_checks_bc(Request $request)
+{
+    $userId = 1; // You can dynamically get this from the request if needed
+    $heiId = 101101;
+
+    $checksBC = DB::select(
+        "SELECT
+            bc.ID,
+            user.ID as users_ID,
+            institute.ID as hei_ID,
+            hei_program.Program as hei_program,
+            hei_major.Major as hei_major,
+            hei_program_code.CODE as hei_program_code,
+            hei_major_code.CODE as hei_major_code,
+            bc.thesis_dissertation,
+            bc.program_status_code,
+            bc.year_implement,
+            atop.GPR as atop_category,
+            atop_serial.GP_GR_No as atop_serial,
+            atop_year.Date as atop_year,
+            bc.remarks,
+            bc.program_mode,
+            bc.program_mode_ot,
+            bc.normal_length,
+            bc.program_credit,
+            bc.tuition_per_unit,
+            bc.program_fee
+        FROM tbl_checks_bc bc
+        JOIN users user ON bc.user_ID = user.ID
+        JOIN hei institute ON bc.Hei_ID = institute.ID
+        JOIN program_with_code hei_program ON bc.hei_program_ID = hei_program.ID
+        JOIN program_with_code hei_major ON bc.hei_major_ID = hei_major.ID
+        JOIN program_with_code hei_program_code ON bc.hei_program_code_ID = hei_program_code.ID
+        JOIN program_with_code hei_major_code ON bc.hei_major_code_ID = hei_major_code.ID
+        JOIN gpr_level atop ON bc.atop_ID = atop.ID
+        JOIN gpr_level atop_serial ON bc.atop_serial_ID = atop_serial.ID
+        JOIN gpr_level atop_year ON bc.atop_year_ID = atop_year.ID
+        WHERE bc.user_ID = ? AND bc.Hei_ID = ?
+        lIMIT 5",
+        [$userId, $heiId]
+    );
+    return $checksBC;
+}
+
+public function fetch_checks_bc(Request $request)
+{
+    $perPage = 10;
+    $page = $request->get('page', 1);
+    $search = $request->get('search', '')
+    $offset = ($page - 1) * perPage;
+
+    $query = DB::table('gpr_level as gpr')
+        ->select(
+            'gpr.ID',
+            'programs.BS_AB',
+            'programs.Discipline',
+            'gpr.Major',
+            'gpr.GP_GR_No,
+            'gpr.GPR',
+            'gpr.Date',
+        )
+        ->leftJoin('program as programs', 'gpr.Program_ID', '=', 'programs.Course_ID');
+
+    if ($search) {
+        $query->where(function($q) use ($search) {
+            $q->where('programs.BS_AB', 'like', '%' . $search . '%')
+            ->orWhere('programs.Discipline', 'like', '%' . $search . '%')
+            ->orWhere('gpr.Major', 'like', "%$search%")
+            ->orWhere('gpr.GP_GR_No', 'like', "%$search%")
+            ->orWhere('gpr.GPR', 'like', "%$search%")
+            ->orWhere('gpr.Date', 'like', "%$search%")
+        })
+    }
+
+    $checksBC = $query->orderBy('programs.BS_AB', 'programs.Discipline', 'gpr.Major', 'asc')
+                ->get();
+    $total = $query->count();
+
+    return [
+        'data' => $checksBC,
+        'total' => $total,
+        'perPage' => $perPage,
+        'currentPage' => $page,
+        'lastPage' => ceil($total / $perPage),
+    ];
+}
+
+
+public function fetch_checks_bc(Request $request)
+    {
+        $heiId = 200;  // Assuming you want to filter by Hei_ID as 2, adjust as necessary
+
+        $checksBC = DB::select(
+            'SELECT
+                gpr.ID,
+                programs.BS_AB,
+                programs.Discipline,
+                gpr.Major,
+                gpr.GPR,
+                gpr.GP_GR_No,
+                gpr.Date
+            FROM gpr_level gpr
+            LEFT JOIN program programs ON gpr.Program_ID = programs.Course_ID
+            WHERE gpr.Hei_ID = ?
+            ORDER BY programs.BS_AB, programs.Discipline, gpr.Major ASC',
+            [$heiId]
+        );
+
+        return $checksBC;
+    }
+
+
+
+public function fetch_checks_bc(Request $request, $programLevel = null)
+{
+    $heiId = 300;
+
+    $perPage = 10;
+    $page = $request->get('page', 1);
+    $search = $request->get('search', '');
+    $offset = ($page - 1) * $perPage;
+
+    $query = DB::table('gpr_level as gpr')
+        ->select(
+            'gpr.ID',
+            'programs.BS_AB',
+            'programs.Discipline',
+            'gpr.Major',
+            'gpr.GPR',
+            'gpr.GP_GR_No',
+            'gpr.Date'
+        )
+        ->leftJoin('program as programs', 'gpr.Program_ID', '=', 'programs.Course_ID')
+        ->where('gpr_level', $heiId);
+
+    // Apply search filter
+    if ($search) {
+        $query->where(function ($q) use ($search) {
+            $q->where('programs.BS_AB', 'like', "%$search%")
+                ->orWhere('programs.Discipline', 'like', "%$search%")
+                ->orWhere('gpr.Major', 'like', "%$search%")
+                ->orWhere('gpr.GP_GR_No', 'like', "%$search%")
+                ->orWhere('gpr.GPR', 'like', "%$search%")
+                ->orWhere('gpr.Date', 'like', "%$search%");
+        });
+    }
+
+    // Apply program level filter
+    if ($programLevel) {
+        $query->where('gpr.Level_I', '=', $programLevel); // Adjust as needed for program level field
+    }
+
+    $checksBC = $query
+        ->orderBy('programs.BS_AB', 'asc')
+        ->orderBy('programs.Discipline', 'asc')
+        ->orderBy('gpr.Major', 'asc')
+        ->get();
+
+    $total = $query->count();
+
+    return [
+        'checksBC' => $checksBC,
+        'total' => $total,
+        'perPage' => $perPage,
+        'currentPage' => $page,
+        'lastPage' => ceil($total / $perPage),
+    ];
+}
+
+
+
+$checksPRC = DB::select(
+    "SELECT
+        prc.ID,
+        user.ID as users_ID,
+        institute.ID as hei_ID,
+        prc.AY,
+        prc.Student_ID,
+        prc.Date_of_birth,
+        CONCAT(prc.Last_name, ', ', prc.First_name, ' ', prc.Middle_name, '.') as full_name,
+        prc.Sex,
+        prc.Date_graduated,
+        gpr.ID as gpr_ID,
+        programs.Discipline,
+        prc.Major,
+        prc.Authority_number,
+        prc.Year_granted,
+        prc.status
+    FROM tbl_checks_list_of_graduates prc
+    LEFT JOIN users user ON prc.user_ID = user.ID
+    LEFT JOIN hei institute ON prc.Hei_ID = institute.ID
+    LEFT JOIN gpr_level gpr ON prc.GPR_ID = gpr.ID
+    LEFT JOIN program programs ON gpr.Program_ID = programs.Course_ID
+    WHERE prc.status IN('Active', 'Modified')
+    AND prc.user_ID = ?", [$userId]
+);

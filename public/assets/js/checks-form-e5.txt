@@ -1,0 +1,114 @@
+$(document).ready(function() {
+    $('#btnsubmit').on('click', function(e) {
+        e.preventDefault(); // Prevent the default form submission
+
+        // Gather form data
+        var formData = $('#facultyForm').serialize();
+
+        // Send AJAX request
+        $.ajax({
+            url: '{{ route("save-checks-E5") }}', // The route you want to send the data to
+            type: 'POST',
+            data: formData,
+            headers: {
+                'X-CSRF-TOKEN': $('input[name="_token"]').val() // CSRF token for Laravel
+            },
+            success: function(response) {
+                // Handle success response
+                alert('Faculty member added successfully!');
+                // Optionally, clear the form fields
+                $('#facultyForm')[0].reset();
+            },
+            error: function(xhr, status, error) {
+                // Handle error response
+                let errors = xhr.responseJSON.errors;
+                let errorMsg = "There were errors with your submission: \n";
+
+                $.each(errors, function(key, value) {
+                    errorMsg += `${value[0]}\n`;
+                });
+
+                alert(errorMsg);
+            }
+        });
+    });
+})
+
+
+$(document).ready(function()
+{
+    $('#btnAdd').ready(function()
+    {
+        $('#AddModal').modal('show');
+        $('#btnSubmit_checksE5').show();
+        $('#btnUpdate_checksE5').hide();
+    })
+
+    $("#btnsubmit_checksE5").click(function()
+    {
+        var last_name           = $("add_last_name").val();
+        var first_name          = $("add_first_name").val();
+        var middle_initial      = $("add_middle_initial").val();
+        var ftpt_ID             = $("add_fulltime_parttime").val();
+        var gender              = $("add_gender").val();
+        var hda_ID              = $("add_highest_degree_attained").val();
+        var programcode_ID_1    = $("add_primary_teaching_discipline").val();
+        var programcode_ID_2    = $("add_bachelors_degree").val();
+        var programcode_ID_3    = $("add_masters_degree").val();
+        var programcode_ID_4    = $("add_doctorate").val();
+        var pl_ID               = $("add_professional_license").val();
+        var tenure              = $("add_tenure").val();
+        var fr_ID               = $("add_faculty_rank").val();
+        var tl_ID               = $("add_teaching_load").val();
+        var subject_taught      = $("add_subject_taught").val();
+        var as_ID               = $("add_annual_salary").val();
+
+        var data = {
+            last_name: last_name,
+            first_name: first_name,
+            middle_initial: middle_initial,
+            ftpt_ID: ftpt_ID,
+            gender: gender,
+            hda_ID: hda_ID,
+            programcode_ID_1: programcode_ID_1,
+            programcode_ID_2: programcode_ID_2,
+            programcode_ID_3: programcode_ID_3,
+            programcode_ID_4: programcode_ID_4,
+            pl_ID: pl_ID,
+            tenure: tenure,
+            fr_ID: fr_ID,
+            tl_ID: tl_ID,
+            subject_taught: subject_taught,
+            as_ID: as_ID
+
+        }
+
+        $.ajax({
+            method: "POST",
+            url: "/save-checks-e5",
+            headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+            data: data,
+            success: function(data) {
+                if(data.success == true)
+                {
+                    Swal.fire({
+                        icon:'success',
+                        title: 'Added!',
+                        text: "Faculty Member was successfully Added.",
+                        confirmButtonColor: "#08BDE1",
+                        confirmButtonText: 'Okay'
+                    }).then((result) => {
+                        if (result.isConfirmed)
+                        {
+                            window.location.href = "{{route('checks-E5')}}"
+                        }
+                    })
+                }
+            }
+        });
+    });
+
+
+})
+
+
